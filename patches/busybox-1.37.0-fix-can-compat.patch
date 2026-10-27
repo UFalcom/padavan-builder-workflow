@@ -1,9 +1,0 @@
-#ifndef CAN_CTRLMODE_FD
-#define CAN_CTRLMODE_FD            0x08
-#endif
-#ifndef CAN_CTRLMODE_FD_NON_ISO
-#define CAN_CTRLMODE_FD_NON_ISO    0x10
-#endif
-#ifndef CAN_CTRLMODE_PRESUME_ACK
-#define CAN_CTRLMODE_PRESUME_ACK   0x20
-#endif
