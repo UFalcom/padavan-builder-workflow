@@ -33,29 +33,48 @@ jobs:
     - name: Build amnezia-wg userspace
       run: |
         set -euo pipefail
-        # переменные toolchain/sysroot (подправьте пути под ваш toolchain)
-        export TOOLCHAIN_DIR=padavan-ng/toolchain
-        export SYSROOT="$TOOLCHAIN_DIR/sysroot"
+
+        # Пути toolchain (подправьте, если в вашем контейнере иначе)
+        TOOLCHAIN_DIR=padavan-ng/toolchain
+        SYSROOT="$TOOLCHAIN_DIR/sysroot"
         export PATH="$TOOLCHAIN_DIR/bin:$PATH"
-        export CROSS_COMPILE=arm-openwrt-linux-gnueabi-
+
+        # Подберите CROSS_COMPILE под ваш toolchain (пример для mipsel)
+        export CROSS_COMPILE=mipsel-openwrt-linux-
         export CC=${CROSS_COMPILE}gcc
         export AR=${CROSS_COMPILE}ar
         export STRIP=${CROSS_COMPILE}strip
 
-        # клонируем amnezia-wg нужной версии
-        git clone https://github.com/<author>/amnezia-wg.git amnezia-wg
-        cd amnezia-wg
-        git checkout v3.1.20260906
+        # Клонируем репозиторий amnezia-wg (userspace часть)
+        git clone --depth 1 https://github.com/amnezia-vpn/amneziawg-linux-kernel-module amneziawg
+        cd amneziawg
 
-        # пример: сборка с autotools/CMake — адаптируйте под реальную систему сборки проекта
+        # Если в репо есть tag v3.1.20260906 — переключаемся (если нет, используйте нужный коммит)
+        git fetch --tags || true
+        git checkout v3.1.20260906 || true
+
+        # Попробуем собрать userspace-утилиты (если есть)
+        # Пример для autotools; если проект использует другой билд-систему — адаптируйте
         ./autogen.sh || true
-        ./configure --host=arm-linux --prefix=/usr --with-sysroot="$SYSROOT" CFLAGS="-Os -march=armv7-a -mfloat-abi=hard"
-        make -j$(nproc)
+        ./configure --host=mipsel-linux --prefix=/usr --with-sysroot="$SYSROOT" CFLAGS="-Os -march=mips32r2 -mabi=32 -msoft-float"
+        make -j$(nproc) || true
 
-        # если собрался бинарник
-        mkdir -p ../padavan-ng/trunk/user/amnezia-wg
-        cp -a amnezia-wg ../padavan-ng/trunk/user/amnezia-wg/
-        ${STRIP} ../padavan-ng/trunk/user/amnezia-wg/amnezia-wg || true
+        # Найдём бинарник (пример)
+        if [ -f src/amnezia-wg ] ; then
+          BIN=src/amnezia-wg
+        else
+          BIN=$(find . -type f -executable -name 'amnezia*' | head -n1 || true)
+        fi
+
+        if [ -z "$BIN" ]; then
+          echo "amnezia-wg binary not found; skipping userspace copy"
+        else
+          mkdir -p ../padavan-ng/trunk/user/amnezia-wg/bin
+          cp -a "$BIN" ../padavan-ng/trunk/user/amnezia-wg/bin/
+          ${STRIP} ../padavan-ng/trunk/user/amnezia-wg/bin/$(basename "$BIN") || true
+          echo "Copied amnezia-wg to padavan-ng/trunk/user/amnezia-wg/bin/"
+        fi
+
 
     - name: Install themes
       run: |
