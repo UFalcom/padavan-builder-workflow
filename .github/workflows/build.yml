@@ -29,6 +29,33 @@ jobs:
         git clone -b "$PADAVAN_BRANCH" "$PADAVAN_REPO"
         git -C padavan-ng checkout "$PADAVAN_COMMIT"
         wget -qO- "$PADAVAN_TOOLCHAIN_URL" | tar -C padavan-ng --zstd -xf -
+        
+    - name: Build amnezia-wg userspace
+      run: |
+        set -euo pipefail
+        # переменные toolchain/sysroot (подправьте пути под ваш toolchain)
+        export TOOLCHAIN_DIR=padavan-ng/toolchain
+        export SYSROOT="$TOOLCHAIN_DIR/sysroot"
+        export PATH="$TOOLCHAIN_DIR/bin:$PATH"
+        export CROSS_COMPILE=arm-openwrt-linux-gnueabi-
+        export CC=${CROSS_COMPILE}gcc
+        export AR=${CROSS_COMPILE}ar
+        export STRIP=${CROSS_COMPILE}strip
+
+        # клонируем amnezia-wg нужной версии
+        git clone https://github.com/<author>/amnezia-wg.git amnezia-wg
+        cd amnezia-wg
+        git checkout v3.1.20260906
+
+        # пример: сборка с autotools/CMake — адаптируйте под реальную систему сборки проекта
+        ./autogen.sh || true
+        ./configure --host=arm-linux --prefix=/usr --with-sysroot="$SYSROOT" CFLAGS="-Os -march=armv7-a -mfloat-abi=hard"
+        make -j$(nproc)
+
+        # если собрался бинарник
+        mkdir -p ../padavan-ng/trunk/user/amnezia-wg
+        cp -a amnezia-wg ../padavan-ng/trunk/user/amnezia-wg/
+        ${STRIP} ../padavan-ng/trunk/user/amnezia-wg/amnezia-wg || true
 
     - name: Install themes
       run: |
