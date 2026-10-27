@@ -22,16 +22,6 @@ jobs:
         for v in "${!PADAVAN_@}" "${!CONFIG_@}"; do
           echo "$v=${!v}" >> $GITHUB_ENV
         done
-     
-        - name: Update AmneziaWG to Latest
-        run: |
-          git clone https://github.com awg_kernel
-          cp -f awg_kernel/*.c trunk/linux-3.4.x/net/wireguard/
-          cp -f awg_kernel/*.h trunk/linux-3.4.x/net/wireguard/
-          git clone https://github.com awg_tools
-          cp -f awg_tools/src/*.c trunk/user/wireguard/tools/
-          cp -f awg_tools/src/*.h trunk/user/wireguard/tools/
-
 
     - name: Download sources and toolchain
       run: |
